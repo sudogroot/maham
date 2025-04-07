@@ -45,13 +45,19 @@ function LogoSvg({ size = 'md', ...props }: { size?: LogoSize } & React.Componen
 
 export function Logo({ size = 'sm', className }: { size?: LogoSize; className?: string }) {
   const fontSizeMap: Record<LogoSize, string> = {
-    sm: 'text-sm',
+    sm: 'text-xl',
     md: 'text-2xl',
     xl: 'text-5xl',
   }
 
+  const gapMap: Record<LogoSize, string> = {
+    sm: 'gap-2',
+    md: 'gap-4',
+    xl: 'gap-8',
+  }
+
   return (
-    <div className={`flex items-center justify-center gap-8 ${className}`}>
+    <div className={`flex items-center justify-center ${gapMap[size]} ${className}`}>
       <LogoSvg size={size} />
       <span className={`font-maven-pro font-medium ${fontSizeMap[size]}`}>Maham</span>
     </div>
