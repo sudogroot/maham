@@ -1,9 +1,16 @@
+import { Logo } from "@/components/landing-page/ui/Logo";
+
 export default async function Layout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="max-w-7xl flex flex-col gap-12 items-start">{children}</div>
+    <div>
+      <div className="mt-28">
+        <Logo size="xl" className="mx-auto" />
+      </div>
+      {children}
+    </div>
   );
 }

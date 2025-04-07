@@ -64,7 +64,7 @@ export function PrimaryFeatures() {
     <section
       id="features"
       aria-label="Features for running your books"
-      className="relative overflow-hidden bg-cyan-500 pt-20 pb-28 sm:py-32"
+      className="relative overflow-hidden bg-cyan-700 pt-20 pb-28 sm:py-32"
     >
       <BlobBg className="" />
       <Container className="relative">
