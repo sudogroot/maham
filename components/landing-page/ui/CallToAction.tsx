@@ -12,7 +12,7 @@ export function CallToAction() {
       id="get-started-today"
       className="relative overflow-hidden bg-cyan-900 py-32"
     >
-      <BlobBg size='60%' />
+      <BlobBg size="60%" />
       <Container className="relative">
         <div className="mx-auto max-w-lg text-center">
           <h2 className="font-display font-semibold text-4xl tracking-tight text-white sm:text-4xl">

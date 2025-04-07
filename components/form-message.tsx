@@ -17,7 +17,7 @@ export function FormMessage({ message }: { message: Message }) {
         </div>
       )}
       {"message" in message && (
-        <div className="text-foreground border-l-2 border-cyan-secondary px-4">{message.message}</div>
+        <div className="text-foreground border-l-2 px-4">{message.message}</div>
       )}
     </div>
   );
