@@ -3,7 +3,7 @@ import { z } from 'zod';
 import cors from '@fastify/cors';
 import { appRouter } from './trpc/router';
 import { createContext } from './trpc/context';
-import authPlugin from './auth/plugin';
+import authPlugin from './auth-plugin';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -69,25 +69,25 @@ const start = async () => {
     await server.register(cors, {
       origin: true,
     });
-    
+
     // Register tRPC routes - simplified for now
     // In production, you should use the proper @trpc/server/adapters/fastify adapter
     server.all('/trpc/:path', async (request, reply) => {
       try {
-        return { 
-          success: true, 
-          message: 'tRPC endpoint is ready. Use @trpc/server/adapters/fastify for proper implementation.' 
+        return {
+          success: true,
+          message: 'tRPC endpoint is ready. Use @trpc/server/adapters/fastify for proper implementation.'
         };
       } catch (error) {
         console.error('Error in tRPC route:', error);
         reply.status(500).send({ error: 'Internal server error' });
       }
     });
-    
+
     // Register Better Auth plugin
     await server.register(authPlugin);
     console.log('Better Auth plugin registered successfully');
-    
+
     await server.listen({ port: PORT, host: '0.0.0.0' });
     console.log(`Server is running on port ${PORT}`);
   } catch (err) {

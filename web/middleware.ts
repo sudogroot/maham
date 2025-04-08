@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { auth } from './lib/api';
 
 export async function middleware(request: NextRequest) {
   // Get the pathname of the request (e.g. /, /protected, /auth/login)
@@ -12,19 +11,19 @@ export async function middleware(request: NextRequest) {
     path === '/sign-up' || 
     path === '/forgot-password' ||
     path.startsWith('/auth/') ||
-    path.startsWith('/api/better-auth/'); // Allow better-auth API routes
+    path.startsWith('/api/');
 
-  // Get token from cookies
-  const authToken = request.cookies.get('authToken')?.value;
-
+  // Check for better-auth session cookie
+  const authSessionCookie = request.cookies.get('auth-session');
+  
   // If the route is protected and the user is not authenticated
-  if (!isPublicPath && !authToken) {
+  if (!isPublicPath && !authSessionCookie) {
     // Redirect to the sign-in page
     return NextResponse.redirect(new URL('/sign-in', request.url));
   }
 
   // If the user is authenticated and tries to access auth pages
-  if (isPublicPath && authToken && (path === '/sign-in' || path === '/sign-up')) {
+  if (isPublicPath && authSessionCookie && (path === '/sign-in' || path === '/sign-up')) {
     // Redirect to the dashboard
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }

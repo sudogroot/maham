@@ -1,4 +1,3 @@
-import { signInAction } from "@/app/actions";
 import { FormMessage, Message } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +35,8 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
               placeholder="Your password"
               required
             />
-            <SubmitButton pendingText="Signing In..." formAction={signInAction}>
+            <SubmitButton pendingText="Signing In..." >
+              {/* formAction={ } */}
               Sign in
             </SubmitButton>
             <FormMessage message={searchParams} />

@@ -19,7 +19,7 @@ const isAuthenticated = t.middleware(({ ctx, next }) => {
     ctx: {
       ...ctx,
       // Add user ID from auth result with type assertion
-      userId: ctx.auth.userId as number,
+      userId: ctx.auth.userId,
     },
   });
 });
@@ -35,7 +35,7 @@ export const appRouter = router({
       try {
         const userId = ctx.userId;
         // userId is now guaranteed to be a number due to the middleware
-        
+
         // Get user from better-auth
         const user = await authHelpers.user.get({ userId });
         return user;
@@ -44,13 +44,13 @@ export const appRouter = router({
         throw new Error('Failed to get user');
       }
     }),
-    
+
     // Get user settings
     settings: protectedProcedure.query(async ({ ctx }) => {
       try {
         const userId = ctx.userId;
         // userId is now guaranteed to be a number due to the middleware
-        
+
         // Get user settings from the database
         // This would be your custom settings logic
         return {
@@ -63,7 +63,7 @@ export const appRouter = router({
       }
     }),
   }),
-  
+
   // Organization endpoints
   organization: router({
     list: protectedProcedure.query(async ({ ctx }) => {
@@ -76,7 +76,7 @@ export const appRouter = router({
         throw new Error('Failed to get organizations');
       }
     }),
-    
+
     create: protectedProcedure
       .input(z.object({ name: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
@@ -93,7 +93,7 @@ export const appRouter = router({
         }
       }),
   }),
-  
+
   // Two-factor authentication endpoints
   twoFactor: router({
     enable: protectedProcedure.mutation(async ({ ctx }) => {
@@ -106,7 +106,7 @@ export const appRouter = router({
         throw new Error('Failed to enable 2FA');
       }
     }),
-    
+
     disable: protectedProcedure.mutation(async ({ ctx }) => {
       try {
         // Disable 2FA for the current user
@@ -117,7 +117,7 @@ export const appRouter = router({
         throw new Error('Failed to disable 2FA');
       }
     }),
-    
+
     verify: protectedProcedure
       .input(z.object({ code: z.string() }))
       .mutation(async ({ input, ctx }) => {

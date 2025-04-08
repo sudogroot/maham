@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
+import * as authSchema from '../auth-schema'
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -18,4 +19,4 @@ const pool = new Pool({
 });
 
 // Create a Drizzle client
-export const db = drizzle(pool, { schema }); 
+export const db = drizzle(pool, { schema: { ...schema, ...authSchema } });

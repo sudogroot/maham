@@ -25,63 +25,190 @@ interface PasswordResetResult {
   error?: string;
 }
 
-// Mock auth client until better-auth is properly installed
+// Auth client for better-auth integration
+
+// API URL for connecting to the backend
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+// Helper functions for working with auth in the client
 export const authClient = {
   // Register a new user
-  async register(email: string, password: string, name?: string): Promise<AuthResult> {
-    console.log('Register called with:', email, password, name);
-    // This is a mock implementation
-    return { 
-      user: { id: 1, email, name },
-      session: { token: 'mock-token', userId: 1, expiresAt: '2099-01-01' },
-      // error: 'Registration is temporarily disabled' // Uncomment to test error case
-    };
+  async register(email: string, password: string, name?: string) {
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, name }),
+        credentials: 'include',
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        return { 
+          user: null, 
+          session: null, 
+          error: result.error || 'Registration failed' 
+        };
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Registration error:', error);
+      return { 
+        user: null, 
+        session: null, 
+        error: error instanceof Error ? error.message : 'Registration failed' 
+      };
+    }
   },
   
-  // Login
-  async login(email: string, password: string): Promise<AuthResult> {
-    console.log('Login called with:', email, password);
-    // This is a mock implementation
-    return { 
-      user: { id: 1, email },
-      session: { token: 'mock-token', userId: 1, expiresAt: '2099-01-01' },
-      // error: 'Invalid credentials' // Uncomment to test error case
-    };
+  // Login with email and password
+  async login(email: string, password: string) {
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        return { 
+          user: null, 
+          session: null, 
+          error: result.error || 'Login failed' 
+        };
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Login error:', error);
+      return { 
+        user: null, 
+        session: null, 
+        error: error instanceof Error ? error.message : 'Login failed' 
+      };
+    }
   },
   
-  // Logout
-  async logout(): Promise<boolean> {
-    console.log('Logout called');
-    // This is a mock implementation
-    localStorage.removeItem('authToken');
-    return true;
+  // Logout the current user
+  async logout() {
+    try {
+      const response = await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      return response.ok;
+    } catch (error) {
+      console.error('Logout error:', error);
+      return false;
+    }
   },
   
   // Check if user is authenticated
-  async isAuthenticated(): Promise<boolean> {
-    console.log('isAuthenticated called');
-    // This is a mock implementation
-    return !!localStorage.getItem('authToken');
+  async isAuthenticated() {
+    try {
+      const session = await this.getSession();
+      return !!session;
+    } catch (error) {
+      console.error('Auth check error:', error);
+      return false;
+    }
+  },
+  
+  // Get current user session
+  async getSession() {
+    try {
+      const response = await fetch(`${API_URL}/auth/session`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        return null;
+      }
+      
+      const data = await response.json();
+      return data.session;
+    } catch (error) {
+      console.error('Get session error:', error);
+      return null;
+    }
   },
   
   // Request password reset
-  async requestPasswordReset(email: string): Promise<PasswordResetResult> {
-    console.log('requestPasswordReset called with:', email);
-    // This is a mock implementation
-    return { success: true };
+  async requestPasswordReset(email: string) {
+    try {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      
+      if (!response.ok) {
+        const result = await response.json();
+        return { 
+          success: false, 
+          error: result.error || 'Request failed' 
+        };
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Password reset request error:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Request failed' 
+      };
+    }
   },
   
-  // Reset password
-  async resetPassword(token: string, newPassword: string): Promise<PasswordResetResult> {
-    console.log('resetPassword called with:', token, newPassword);
-    // This is a mock implementation
-    return { success: true };
+  // Reset password with token
+  async resetPassword(token: string, newPassword: string) {
+    try {
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token, password: newPassword }),
+      });
+      
+      if (!response.ok) {
+        const result = await response.json();
+        return { 
+          success: false, 
+          error: result.error || 'Reset failed' 
+        };
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Password reset error:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Reset failed' 
+      };
+    }
   },
   
   // Get current user
-  async getUser(): Promise<User | null> {
-    console.log('getUser called');
-    // This is a mock implementation
-    return { id: 1, email: 'user@example.com', name: 'Example User' };
-  },
+  async getUser() {
+    try {
+      const session = await this.getSession();
+      return session?.user || null;
+    } catch (error) {
+      console.error('Get user error:', error);
+      return null;
+    }
+  }
 }; 

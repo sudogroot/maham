@@ -52,7 +52,7 @@ export const auth = betterAuth({
 export const authHelpers = {
   // User methods
   user: {
-    get: async ({ userId }: { userId: number }) => {
+    get: async ({ userId }: { userId: string }) => {
       // Implementation will depend on better-auth's actual API
       return {
         id: userId,
@@ -61,44 +61,44 @@ export const authHelpers = {
       };
     }
   },
-  
+
   // Organization methods
   organization: {
-    listByUser: async ({ userId }: { userId: number }) => {
+    listByUser: async ({ userId }: { userId: string }) => {
       // Implementation will depend on better-auth's actual API
       return [
         { id: 1, name: 'Example Organization' }
       ];
     },
-    create: async ({ userId, name }: { userId: number, name: string }) => {
+    create: async ({ userId, name }: { userId: string, name: string }) => {
       // Implementation will depend on better-auth's actual API
-      return { 
+      return {
         id: Math.floor(Math.random() * 1000),
         name,
         createdAt: new Date()
       };
     }
   },
-  
+
   // Two-Factor methods
   twoFactor: {
-    enable: async ({ userId }: { userId: number }) => {
+    enable: async ({ userId }: { userId: string }) => {
       // This would typically generate a secret and QR code
       return {
         secret: "EXAMPLE_SECRET",
         qrCode: "https://example.com/qr"
       };
     },
-    disable: async ({ userId }: { userId: number }) => {
+    disable: async ({ userId }: { userId: string }) => {
       // Implementation to disable 2FA
       return true;
     },
-    verify: async ({ userId, code }: { userId: number, code: string }) => {
+    verify: async ({ userId, code }: { userId: string, code: string }) => {
       // Verify the 2FA code
       return { verified: code.length === 6 };
     }
   },
-  
+
   // Session validation
   session: {
     validate: async ({ token }: { token: string }) => {

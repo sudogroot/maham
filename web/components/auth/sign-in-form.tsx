@@ -47,6 +47,11 @@ export function SignInForm() {
         return;
       }
       
+      if (!result.session) {
+        setError('Login failed. Please try again.');
+        return;
+      }
+      
       // Redirect to dashboard on successful login
       router.push('/dashboard');
       router.refresh();

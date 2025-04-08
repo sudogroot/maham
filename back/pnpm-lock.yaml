@@ -29,6 +29,9 @@ importers:
       fastify:
         specifier: ^5.2.2
         version: 5.2.2
+      fastify-better-auth:
+        specifier: ^1.0.1
+        version: 1.0.1(better-auth@1.2.5(typescript@5.8.3))(fastify@5.2.2)
       fastify-plugin:
         specifier: ^5.0.1
         version: 5.0.1
@@ -39,7 +42,7 @@ importers:
         specifier: ^13.0.0
         version: 13.0.0
       zod:
-        specifier: ^3.24.2
+        specifier: ^3.23.0
         version: 3.24.2
     devDependencies:
       '@types/bcrypt':
@@ -838,6 +841,13 @@ packages:
 
   fast-uri@3.0.6:
     resolution: {integrity: sha512-Atfo14OibSv5wAp4VWNsFYE1AchQRTv9cBGWET4pZWHzYshFSS9NQI6I57rdKn9croWVMbYFbLhJ+yJvmZIIHw==}
+
+  fastify-better-auth@1.0.1:
+    resolution: {integrity: sha512-MCDUKa9TeVH/k8/bjz0xYhYTZCWmq8K1zkywetGXqRr0aW0u0VCoCaWqtOKF1+QvgLeE4X6rs9G2EQ906wY/Ag==}
+    engines: {node: '>= 22'}
+    peerDependencies:
+      better-auth: 1.x
+      fastify: 5.x
 
   fastify-plugin@5.0.1:
     resolution: {integrity: sha512-HCxs+YnRaWzCl+cWRYFnHmeRFyR5GVnJTAaCJQiYzQSDwK9MgJdyAsuL3nh0EWRCYMgQ5MeziymvmAhUHYHDUQ==}
@@ -1877,6 +1887,12 @@ snapshots:
   fast-safe-stringify@2.1.1: {}
 
   fast-uri@3.0.6: {}
+
+  fastify-better-auth@1.0.1(better-auth@1.2.5(typescript@5.8.3))(fastify@5.2.2):
+    dependencies:
+      better-auth: 1.2.5(typescript@5.8.3)
+      fastify: 5.2.2
+      fastify-plugin: 5.0.1
 
   fastify-plugin@5.0.1: {}
 
