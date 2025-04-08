@@ -1,20 +1,40 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "@/utils/supabase/middleware";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { auth } from './lib/api';
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  // Get the pathname of the request (e.g. /, /protected, /auth/login)
+  const path = request.nextUrl.pathname;
+
+  // Public paths that don't require authentication
+  const isPublicPath = path === '/' || 
+    path === '/sign-in' || 
+    path === '/sign-up' || 
+    path === '/forgot-password' ||
+    path.startsWith('/auth/') ||
+    path.startsWith('/api/better-auth/'); // Allow better-auth API routes
+
+  // Get token from cookies
+  const authToken = request.cookies.get('authToken')?.value;
+
+  // If the route is protected and the user is not authenticated
+  if (!isPublicPath && !authToken) {
+    // Redirect to the sign-in page
+    return NextResponse.redirect(new URL('/sign-in', request.url));
+  }
+
+  // If the user is authenticated and tries to access auth pages
+  if (isPublicPath && authToken && (path === '/sign-in' || path === '/sign-up')) {
+    // Redirect to the dashboard
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
+  // Skip all files in these paths
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - images - .svg, .png, .jpg, .jpeg, .gif, .webp
-     * Feel free to modify this pattern to include more paths.
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.svg).*)',
   ],
 };

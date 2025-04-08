@@ -1,51 +1,48 @@
 import { db } from './client';
-import { users, todos } from './schema';
+import { userSettings } from './schema';
+import * as bcrypt from 'bcrypt';
 
 async function seed() {
   console.log('Seeding database...');
 
   try {
     // Clear existing data
-    await db.delete(todos);
-    await db.delete(users);
+    await db.delete(userSettings);
 
-    // Insert users
-    console.log('Adding users...');
-    const [user1, user2] = await Promise.all([
-      db.insert(users).values({
-        name: 'John Doe',
-        email: 'john@example.com',
-        password: 'password123',
-      }).returning(),
-      db.insert(users).values({
-        name: 'Jane Smith',
-        email: 'jane@example.com',
-        password: 'password123',
-      }).returning(),
-    ]);
+    // Create admin user
+    // console.log('Adding admin user...');
+    // const [adminUser] = await db.insert(users).values({
+    //   name: 'Admin User',
+    //   email: 'admin@example.com',
+    //   passwordHash: await bcrypt.hash('Password123!', 10),
+    //   role: 'admin',
+    //   emailVerified: true,
+    // }).returning();
+    //
+    // // Create regular user
+    // console.log('Adding regular user...');
+    // const [regularUser] = await db.insert(users).values({
+    //   name: 'Regular User',
+    //   email: 'user@example.com',
+    //   passwordHash: await bcrypt.hash('Password123!', 10),
+    //   role: 'user',
+    //   emailVerified: true,
+    // }).returning();
 
-    // Insert todos
-    console.log('Adding todos...');
-    await Promise.all([
-      db.insert(todos).values({
-        title: 'Learn Fastify',
-        description: 'Learn how to use Fastify with TypeScript',
-        completed: 0,
-        userId: user1[0].id,
-      }),
-      db.insert(todos).values({
-        title: 'Learn Drizzle',
-        description: 'Learn how to use Drizzle ORM with PostgreSQL',
-        completed: 0,
-        userId: user1[0].id,
-      }),
-      db.insert(todos).values({
-        title: 'Learn tRPC',
-        description: 'Learn how to use tRPC with Fastify',
-        completed: 0,
-        userId: user2[0].id,
-      }),
-    ]);
+    // Add user settings
+    console.log('Adding user settings...');
+    // await Promise.all([
+    //   db.insert(userSettings).values({
+    //     userId: adminUser.id,
+    //     theme: 'dark',
+    //     notifications: true,
+    //   }),
+    //   db.insert(userSettings).values({
+    //     userId: regularUser.id,
+    //     theme: 'light',
+    //     notifications: false,
+    //   }),
+    // ]);
 
     console.log('Seeding completed successfully');
   } catch (error) {

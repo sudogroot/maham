@@ -1,26 +1,25 @@
-import { pgTable, serial, text, varchar, timestamp, integer, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, varchar, timestamp, integer, uniqueIndex, boolean, pgEnum } from 'drizzle-orm/pg-core';
 
-// Example User table
-export const users = pgTable('users', {
+// Note: User and session tables are now managed by better-auth
+// This schema file only contains custom tables that are not managed by better-auth
+
+// User settings - this can contain app-specific settings that better-auth doesn't manage
+export const userSettings = pgTable('user_settings', {
   id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  email: varchar('email', { length: 255 }).notNull(),
-  password: varchar('password', { length: 255 }).notNull(),
+  userId: serial('user_id').notNull().unique(), // This references the better-auth user ID
+  theme: varchar('theme', { length: 50 }).default('light'),
+  notifications: boolean('notifications').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (users) => {
-  return {
-    emailIdx: uniqueIndex('email_idx').on(users.email),
-  };
 });
 
-// Example Todo table
+// Other custom tables can be added here
+// For example, a todos table
 export const todos = pgTable('todos', {
   id: serial('id').primaryKey(),
-  title: varchar('title', { length: 255 }).notNull(),
-  description: text('description'),
-  completed: integer('completed').default(0).notNull(),
-  userId: serial('user_id').references(() => users.id).notNull(),
+  userId: integer('user_id').notNull(), // This references the better-auth user ID
+  title: text('title').notNull(),
+  completed: boolean('completed').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }); 
