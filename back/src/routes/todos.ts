@@ -1,111 +1,117 @@
 import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { db } from '../db/client';
 import { todos } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
-// Todo interfaces for TypeScript
-interface TodoParams {
-  id: number;
+// Zod schemas for validation with type inference
+const TodoParams = z.object({
+  id: z.coerce.number()
+});
+type TodoParamsType = z.infer<typeof TodoParams>;
+
+const TodoBody = z.object({
+  title: z.string().min(1),
+  description: z.string().optional().nullable(),
+  completed: z.number().int().min(0).max(1).default(0),
+  userId: z.number().int().positive()
+});
+type TodoBodyType = z.infer<typeof TodoBody>;
+
+const TodoQuery = z.object({
+  userId: z.number().int().positive().optional()
+});
+type TodoQueryType = z.infer<typeof TodoQuery>;
+
+// Response type schemas
+const TodoResponse = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: z.string().nullable(),
+  completed: z.number(),
+  userId: z.number(),
+  createdAt: z.string().or(z.date()).transform(val => 
+    val instanceof Date ? val.toISOString() : val
+  ),
+  updatedAt: z.string().or(z.date()).transform(val => 
+    val instanceof Date ? val.toISOString() : val
+  )
+});
+
+const ErrorResponse = z.object({
+  error: z.string()
+});
+
+// Convert Zod schema to JSON schema for Fastify
+function zodToJsonSchema(schema: z.ZodObject<any>) {
+  return {
+    type: 'object',
+    properties: Object.fromEntries(
+      Object.entries(schema.shape).map(([key, value]: [string, any]) => {
+        let type = 'string';
+        if (value._def.typeName === 'ZodNumber') type = 'number';
+        if (value._def.typeName === 'ZodBoolean') type = 'boolean';
+        return [key, { type }];
+      })
+    )
+  };
 }
 
-interface TodoBody {
-  title: string;
-  description?: string;
-  completed?: number;
-  userId: number;
+// Helper function to format database records
+function formatTodoRecord(record: any) {
+  return {
+    ...record,
+    createdAt: record.createdAt instanceof Date ? record.createdAt.toISOString() : record.createdAt,
+    updatedAt: record.updatedAt instanceof Date ? record.updatedAt.toISOString() : record.updatedAt
+  };
 }
-
-interface TodoQuerystring {
-  userId?: number;
-}
-
-// Define schemas for validation
-const todoParamsSchema = {
-  type: 'object',
-  required: ['id'],
-  properties: {
-    id: { type: 'number' }
-  }
-};
-
-const todoBodySchema = {
-  type: 'object',
-  required: ['title', 'userId'],
-  properties: {
-    title: { type: 'string', minLength: 1 },
-    description: { type: 'string', nullable: true },
-    completed: { type: 'number', enum: [0, 1], default: 0 },
-    userId: { type: 'number' }
-  }
-};
-
-const todoQuerySchema = {
-  type: 'object',
-  properties: {
-    userId: { type: 'number' }
-  }
-};
-
-const todoResponseSchema = {
-  type: 'object',
-  properties: {
-    id: { type: 'number' },
-    title: { type: 'string' },
-    description: { type: 'string', nullable: true },
-    completed: { type: 'number' },
-    userId: { type: 'number' },
-    createdAt: { type: 'string', format: 'date-time' },
-    updatedAt: { type: 'string', format: 'date-time' }
-  }
-};
-
-const todosResponseSchema = {
-  type: 'array',
-  items: todoResponseSchema
-};
 
 // Export routes as a plugin
 export default async function todoRoutes(fastify: FastifyInstance) {
   // Get all todos (optionally filtered by userId)
   fastify.get<{
-    Querystring: TodoQuerystring,
-    Reply: any[]
+    Querystring: TodoQueryType,
+    Reply: z.infer<typeof TodoResponse>[]
   }>('/', {
     schema: {
-      querystring: todoQuerySchema,
+      querystring: zodToJsonSchema(TodoQuery),
       response: {
-        200: todosResponseSchema
+        200: {
+          type: 'array',
+          items: zodToJsonSchema(TodoResponse)
+        }
       }
     }
-  }, async (request, reply) => {
-    const { userId } = request.query;
+  }, async (request) => {
+    const query = TodoQuery.parse(request.query);
+    const { userId } = query;
     
+    let result;
     if (userId) {
-      return await db.select().from(todos).where(eq(todos.userId, userId));
+      result = await db.select().from(todos).where(eq(todos.userId, userId));
+    } else {
+      result = await db.select().from(todos);
     }
     
-    return await db.select().from(todos);
+    // Format the dates
+    return result.map(formatTodoRecord);
   });
 
   // Get a single todo by ID
   fastify.get<{
-    Params: TodoParams,
-    Reply: any
+    Params: TodoParamsType,
+    Reply: z.infer<typeof TodoResponse> | z.infer<typeof ErrorResponse>
   }>('/:id', {
     schema: {
-      params: todoParamsSchema,
+      params: zodToJsonSchema(TodoParams),
       response: {
-        200: todoResponseSchema,
-        404: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        }
+        200: zodToJsonSchema(TodoResponse),
+        404: zodToJsonSchema(ErrorResponse)
       }
     }
   }, async (request, reply) => {
-    const { id } = request.params;
+    const params = TodoParams.parse(request.params);
+    const { id } = params;
     
     const result = await db.select().from(todos).where(eq(todos.id, id));
     
@@ -114,51 +120,49 @@ export default async function todoRoutes(fastify: FastifyInstance) {
       return { error: 'Todo not found' };
     }
     
-    return result[0];
+    // Format the dates
+    return formatTodoRecord(result[0]);
   });
 
   // Create a new todo
   fastify.post<{
-    Body: TodoBody,
-    Reply: any
+    Body: TodoBodyType,
+    Reply: z.infer<typeof TodoResponse>
   }>('/', {
     schema: {
-      body: todoBodySchema,
+      body: zodToJsonSchema(TodoBody),
       response: {
-        201: todoResponseSchema
+        201: zodToJsonSchema(TodoResponse)
       }
     }
   }, async (request, reply) => {
-    const todo = request.body;
+    const todo = TodoBody.parse(request.body);
     
     const result = await db.insert(todos).values(todo).returning();
     
     reply.code(201);
-    return result[0];
+    // Format the dates
+    return formatTodoRecord(result[0]);
   });
 
   // Update a todo
   fastify.put<{
-    Params: TodoParams,
-    Body: TodoBody,
-    Reply: any
+    Params: TodoParamsType,
+    Body: TodoBodyType,
+    Reply: z.infer<typeof TodoResponse> | z.infer<typeof ErrorResponse>
   }>('/:id', {
     schema: {
-      params: todoParamsSchema,
-      body: todoBodySchema,
+      params: zodToJsonSchema(TodoParams),
+      body: zodToJsonSchema(TodoBody),
       response: {
-        200: todoResponseSchema,
-        404: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        }
+        200: zodToJsonSchema(TodoResponse),
+        404: zodToJsonSchema(ErrorResponse)
       }
     }
   }, async (request, reply) => {
-    const { id } = request.params;
-    const todo = request.body;
+    const params = TodoParams.parse(request.params);
+    const { id } = params;
+    const todo = TodoBody.parse(request.body);
     
     const result = await db.update(todos)
       .set({
@@ -173,16 +177,17 @@ export default async function todoRoutes(fastify: FastifyInstance) {
       return { error: 'Todo not found' };
     }
     
-    return result[0];
+    // Format the dates
+    return formatTodoRecord(result[0]);
   });
 
   // Delete a todo
   fastify.delete<{
-    Params: TodoParams,
-    Reply: { success: boolean } | { error: string }
+    Params: TodoParamsType,
+    Reply: { success: boolean } | z.infer<typeof ErrorResponse>
   }>('/:id', {
     schema: {
-      params: todoParamsSchema,
+      params: zodToJsonSchema(TodoParams),
       response: {
         200: {
           type: 'object',
@@ -190,16 +195,12 @@ export default async function todoRoutes(fastify: FastifyInstance) {
             success: { type: 'boolean' }
           }
         },
-        404: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        }
+        404: zodToJsonSchema(ErrorResponse)
       }
     }
   }, async (request, reply) => {
-    const { id } = request.params;
+    const params = TodoParams.parse(request.params);
+    const { id } = params;
     
     const result = await db.delete(todos).where(eq(todos.id, id)).returning();
     

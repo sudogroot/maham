@@ -1,4 +1,5 @@
 import Fastify, { FastifyServerOptions } from 'fastify';
+import { z } from 'zod';
 import cors from '@fastify/cors';
 import { appRouter } from './trpc/router';
 import { createContext } from './trpc/context';
@@ -9,7 +10,7 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 // Create Fastify server with generic types
 const serverOptions: FastifyServerOptions = {
@@ -24,37 +25,57 @@ const serverOptions: FastifyServerOptions = {
 // Create server with explicit generic types
 const server = Fastify(serverOptions);
 
-// Define a health check route
+// Define a health check route with native Fastify validation
 interface HealthResponse {
   status: string;
 }
 
 server.get<{
   Reply: HealthResponse
-}>('/health', async (request, reply) => {
+}>('/health', {
+  schema: {
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          status: { type: 'string' }
+        },
+        required: ['status']
+      }
+    }
+  }
+}, async (request, reply) => {
   return { status: 'ok' };
 });
 
-// Define a route with typed request and response
-interface GreetingQuerystring {
-  name?: string;
+// Define schema with Zod
+const GreetingQuery = z.object({
+  name: z.string().optional()
+});
+type GreetingQueryType = z.infer<typeof GreetingQuery>;
+
+// Helper function to convert Zod schema to Fastify JSON schema
+function zodToJsonSchema(schema: z.ZodObject<any>) {
+  return {
+    type: 'object',
+    properties: Object.fromEntries(
+      Object.entries(schema.shape).map(([key, value]: [string, any]) => {
+        let type = 'string';
+        if (value._def.typeName === 'ZodNumber') type = 'number';
+        if (value._def.typeName === 'ZodBoolean') type = 'boolean';
+        return [key, { type }];
+      })
+    )
+  };
 }
 
-interface GreetingResponse {
-  greeting: string;
-}
-
+// Example route with Zod for validation
 server.get<{
-  Querystring: GreetingQuerystring,
-  Reply: GreetingResponse
+  Querystring: GreetingQueryType,
+  Reply: { greeting: string }
 }>('/greeting', {
   schema: {
-    querystring: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' }
-      }
-    },
+    querystring: zodToJsonSchema(GreetingQuery),
     response: {
       200: {
         type: 'object',
@@ -65,8 +86,9 @@ server.get<{
       }
     }
   }
-}, async (request, reply) => {
-  const { name = 'world' } = request.query;
+}, async (request) => {
+  const query = GreetingQuery.parse(request.query);
+  const { name = 'world' } = query;
   return { greeting: `Hello, ${name}!` };
 });
 
@@ -77,16 +99,16 @@ const start = async () => {
     await server.register(cors, {
       origin: true,
     });
-
+    
     // Register tRPC plugin
     await server.register(fastifyTRPCPlugin, {
       prefix: '/trpc',
       trpcOptions: { router: appRouter, createContext },
     });
-
+    
     // Register todo routes
     await server.register(todoRoutes, { prefix: '/todos' });
-
+    
     await server.listen({ port: PORT, host: '0.0.0.0' });
     console.log(`Server is running on port ${PORT}`);
   } catch (err) {

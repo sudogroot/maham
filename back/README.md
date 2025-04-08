@@ -4,7 +4,7 @@ This is a TypeScript backend built with [Fastify 5.2.x](https://fastify.io/), [D
 
 ## Features
 
-- 🚀 Fastify 5.2.x with typed routes and native schema validation
+- 🚀 Fastify 5.2.x with Zod integration for validation
 - 🌟 TypeScript with full type safety and generics
 - 🧱 Drizzle ORM for database interactions with PostgreSQL
 - 🔄 tRPC for end-to-end typesafe API
@@ -69,9 +69,9 @@ npm start
 ## API Endpoints
 
 ### REST Endpoints
-- `GET /health`: Health check endpoint
-- `GET /greeting?name=John`: Example greeting endpoint
-- `GET /todos`: Get all todos
+- `GET /health`: Health check endpoint (native Fastify validation)
+- `GET /greeting?name=John`: Example greeting endpoint (Zod validation)
+- `GET /todos`: Get all todos (Zod validation)
 - `GET /todos/:id`: Get a specific todo
 - `POST /todos`: Create a new todo
 - `PUT /todos/:id`: Update a todo
@@ -80,23 +80,44 @@ npm start
 ### tRPC Endpoints
 - `/trpc/hello`: Example tRPC endpoint (can be accessed via tRPC client)
 
-## Type Safety
+## Type Safety with Zod
 
-The backend is built with full type safety using TypeScript generics and Fastify's native schema validation:
+This backend uses Zod for schema validation and type safety. Here's how:
+
+1. **Define Schema Once**:
 
 ```typescript
-// Example of a typed route with schema validation
+// Define schema with Zod
+const GreetingQuery = z.object({
+  name: z.string().optional()
+});
+type GreetingQueryType = z.infer<typeof GreetingQuery>;
+```
+
+2. **Use Schema for Validation**:
+
+```typescript
+// Helper function to convert Zod schema to Fastify JSON schema
+function zodToJsonSchema(schema) {
+  return {
+    type: 'object',
+    properties: Object.fromEntries(
+      Object.entries(schema.shape).map(([key, value]) => {
+        let type = 'string';
+        if (value._def.typeName === 'ZodNumber') type = 'number';
+        if (value._def.typeName === 'ZodBoolean') type = 'boolean';
+        return [key, { type }];
+      })
+    )
+  };
+}
+
 server.get<{
-  Querystring: GreetingQuerystring,
-  Reply: GreetingResponse
+  Querystring: GreetingQueryType,
+  Reply: { greeting: string }
 }>('/greeting', {
   schema: {
-    querystring: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' }
-      }
-    },
+    querystring: zodToJsonSchema(GreetingQuery),
     response: {
       200: {
         type: 'object',
@@ -107,7 +128,19 @@ server.get<{
       }
     }
   }
-}, async (request, reply) => {
-  const { name = 'world' } = request.query;
+}, async (request) => {
+  const query = GreetingQuery.parse(request.query);
+  const { name = 'world' } = query;
   return { greeting: `Hello, ${name}!` };
-}); 
+});
+```
+
+3. **Parse Input at Runtime**:
+
+Zod validates your inputs at runtime:
+
+```typescript
+const query = GreetingQuery.parse(request.query);
+```
+
+This approach gives you both TypeScript type safety and runtime validation.
