@@ -1,5 +1,5 @@
 import { db } from './client';
-import { userSettings } from './schema';
+// import { userSettings } from './schema';
 import * as bcrypt from 'bcrypt';
 
 async function seed() {
@@ -7,7 +7,7 @@ async function seed() {
 
   try {
     // Clear existing data
-    await db.delete(userSettings);
+    // await db.delete(userSettings);
 
     // Create admin user
     // console.log('Adding admin user...');

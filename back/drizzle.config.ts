@@ -9,11 +9,20 @@ if (!connectionString) {
   throw new Error('DATABASE_URL environment variable is not defined');
 }
 
-export default {
+import {
+  defineConfig
+} from 'drizzle-kit'
+
+export default defineConfig({
   schema: './src/db/schema.ts',
   out: './drizzle/migrations',
-  driver: 'pg',
+  dialect: 'postgresql',
   dbCredentials: {
-    connectionString,
-  }
-} satisfies Config; 
+    ssl: false,
+    host: "localhost",
+    user: "postgres",
+    password: "postgres",
+    database: "maham_dev",
+    port: 5444,
+  },
+})
